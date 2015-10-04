@@ -1,3 +1,3 @@
-node('docker') {
+node('gcp-packer') {
   sh "echo success"
 }
