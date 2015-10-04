@@ -26,15 +26,15 @@ node('gcp-packer') {
     sh('export CLOUDSDK_CORE_DISABLE_PROMPTS=1 ; curl https://sdk.cloud.google.com | bash')
     sh("/root/google-cloud-sdk/bin/gcloud container clusters get-credentials ${cluster} --zone ${zone}")
     sh('curl -o /usr/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/v1.0.1/bin/linux/amd64/kubectl ; chmod +x /usr/bin/kubectl')
-    sh("kubectl --namespace=staging rollingupdate gceme-frontend --image=${img.id} --update-period=5s")
-    sh("kubectl --namespace=staging rollingupdate gceme-backend --image=${img.id} --update-period=5s")
-    sh("echo http://`kubectl --namespace=staging get service/gceme-frontend --output=json | jq -r '.status.loadBalancer.ingress[0].ip'` > staging")
+    sh("kubectl --namespace=stage rollingupdate gceme-frontend --image=${img.id} --update-period=5s")
+    sh("kubectl --namespace=stage rollingupdate gceme-backend --image=${img.id} --update-period=5s")
+    sh("echo http://`kubectl --namespace=stage get service/gceme-frontend --output=json | jq -r '.status.loadBalancer.ingress[0].ip'` > stage")
   }
 
   // Deploy to prod if approved
   stage 'Approve, deploy to prod'
-  def url = readFile('staging').trim()
-  input message: "Does staging at $url look good? ", ok: "Deploy to production"
+  def url = readFile('stage').trim()
+  input message: "Does stage at $url look good? ", ok: "Deploy to production"
   sh('gcloud docker -a')
   img.push('latest')
   docker.image('buildpack-deps:jessie-scm').inside {
@@ -46,6 +46,5 @@ node('gcp-packer') {
     sh("kubectl --namespace=production rollingupdate gceme-backend --image=${img.id} --update-period=5s")
     sh("echo http://`kubectl --namespace=production get service/gceme-frontend --output=json | jq -r '.status.loadBalancer.ingress[0].ip'`")
   }
-}
   sh "echo success"
 }
